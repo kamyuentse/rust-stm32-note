@@ -25,11 +25,57 @@
 
 在不同的启动模式下，处理器将自动完成地址空间的映射。TODO：以 STM32-F446RE 为例，不同启动模式下的地址空间映射图如下：
 
-
-
 作为例子，下面对一个使用 mbed 库编写的简单程序进行分析：
 
+##### ELF 文件头信息
 
+```
+ELF Header:
+  Magic:   7f 45 4c 46 01 01 01 00 00 00 00 00 00 00 00 00
+  Class:                             ELF32
+  Data:                              2's complement, little endian
+  Version:                           1 (current)
+  OS/ABI:                            UNIX - System V
+  ABI Version:                       0
+  Type:                              EXEC (Executable file)
+  Machine:                           ARM
+  Version:                           0x1
+  Entry point address:               0x8001f49
+  Start of program headers:          52 (bytes into file)
+  Start of section headers:          166868 (bytes into file)
+  Flags:                             0x5000200, Version5 EABI, soft-float ABI
+  Size of this header:               52 (bytes)
+  Size of program headers:           32 (bytes)
+  Number of program headers:         3
+  Size of section headers:           40 (bytes)
+  Number of section headers:         12
+  Section header string table index: 11
+```
+
+##### 部分反汇编内容
+
+```
+BUILD/mbed-os-example-blinky.elf:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+08000000 <g_pfnVectors>:
+ 8000000:	20020000 	andcs	r0, r2, r0
+ 8000004:	08001f49 	stmdaeq	r0, {r0, r3, r6, r8, r9, sl, fp, ip}
+ 
+ ...
+ 
+ 08001f48 <Reset_Handler>:
+ 8001f48:	f8df d020 	ldr.w	sp, [pc, #32]	; 8001f6c <LoopCopyDataInit+0x14>
+ 8001f4c:	2100      	movs	r1, #0
+ 8001f4e:	e003      	b.n	8001f58 <LoopCopyDataInit>
+ 
+ ...
+ 
+```
+
+从上面可以看到，中断向量表存放在存储器开始的位置，并且向量表中第一个地址为主栈指针（一般设置为RAM的顶部地址），第二个位复位中断处理函数的入口地址，注意到这个位置的值为 0x08001f49，而 Reset\_Handler 的地址为 0x08001f48，这是由于在 Cortex-M 处理器中，向量表中的向量地址最低位应该为1，以表示它们为 Thumb 代码。
 
 ### 系统异常及中断
 
